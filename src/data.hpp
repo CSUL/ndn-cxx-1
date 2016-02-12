@@ -31,8 +31,29 @@
 #include "key-locator.hpp"
 #include "lp/tags.hpp"
 #include "tag-host.hpp"
+#include <stack>
 
 namespace ndn {
+	
+	class fcInfo
+{
+
+public:
+class fcFields
+ 	  {
+ 	  	  public:
+ 		  	  MetaInfo m_fc_metaInfo;
+ 		  	  size_t m_fc_hashContent;
+ 		  	  Signature m_fc_signContent;  	 
+ 	  };  //fcFields
+
+	std::stack<fcFields> fcRecord;
+
+	std::size_t getHash(const uint8_t* content){
+		return 1;
+	}
+   
+  };
 
 /** @brief represents a Data packet
  */
@@ -48,6 +69,7 @@ public:
     {
     }
   };
+
 
   /**
    * @brief Create an empty Data object
@@ -273,6 +295,48 @@ public:
   const Signature&
   getSignature() const;
 
+  int
+  getNumSignature() const;
+
+  inline bool
+  getVerFlag(int index);
+
+
+  inline bool
+  setVerFlag(int index, bool indexValue);
+
+  inline void
+  enableTrustChainSignatureType();
+
+  inline void
+  disableTrustChainSignatureType();
+
+  // add a new FC record to the fcInfo stack
+  inline size_t
+  addNewFCRecord(fcInfo::fcFields fcRecord);
+
+  inline fcInfo::fcFields
+  replaceFCRecord(fcInfo::fcFields fcRecord);
+
+  // retrieve the size of fcInfo stack
+  inline size_t
+  getFCSize(void) const;
+
+  // get the top record from fcInfo stack
+  inline fcInfo::fcFields
+  getFCRecord(void);
+
+  // get and pop the top record from fcInfo stack
+  inline fcInfo::fcFields
+  popFCRecord(void) const;
+
+  // empty the fcInfo stack
+  inline bool
+  emptyFCRecord(void);
+
+//  inline bool
+//  getVerFlag();
+
   /**
    * @brief Set the signature to a copy of the given signature.
    * @param signature The signature object which is cloned.
@@ -282,6 +346,9 @@ public:
 
   Data&
   setSignatureValue(const Block& value);
+
+  size_t
+  addNewFCRecord(void);
 
   ///////////////////////////////////////////////////////////////
 
@@ -345,6 +412,12 @@ private:
 
   mutable Block m_wire;
   mutable Name m_fullName;
+
+  /// XMB new function chain content
+   bool m_verFlag[16];
+  bool trustChainSignatureType;
+  public: fcInfo m_info_stack;
+ 
 };
 
 std::ostream&
@@ -392,6 +465,104 @@ Data::getSignature() const
   return m_signature;
 }
 
+inline bool
+Data::getVerFlag(int index)
+{
+	return m_verFlag[index];
+}
+
+// add a new FC record to the fcInfo stack
+inline size_t
+Data::addNewFCRecord(fcInfo::fcFields fcRecord)
+{
+	m_info_stack.fcRecord.push(fcRecord);
+	return 1;
+}
+
+// replace the top record with another FC record in fcInfo stack
+inline fcInfo::fcFields
+Data::replaceFCRecord(fcInfo::fcFields fcRecord)
+{
+		fcInfo::fcFields value;
+		value=m_info_stack.fcRecord.top();
+		m_info_stack.fcRecord.pop();
+
+		m_info_stack.fcRecord.push(fcRecord);
+
+		return value;
+}
+
+// retrieve the size of fcInfo stack
+inline size_t
+Data::getFCSize(void) const
+{
+	return m_info_stack.fcRecord.size();
+}
+
+
+// get the top record from fcInfo stack
+inline fcInfo::fcFields
+Data::getFCRecord(void)
+{
+	return m_info_stack.fcRecord.top();
+}
+
+// get and pop the top record from fcInfo stack
+inline fcInfo::fcFields
+Data::popFCRecord(void) const
+{
+	fcInfo::fcFields value;
+	value=m_info_stack.fcRecord.top();
+	m_info_stack.fcRecord.pop();
+	return value;
+}
+
+
+// empty the fcInfo stack
+inline bool
+Data::emptyFCRecord(void)
+{
+	return m_info_stack.fcRecord.empty();
+}
+
+inline bool
+Data::setVerFlag(int index, bool indexValue)
+{
+	m_verFlag[index]=indexValue;
+	return true;
+}
+
+inline void
+Data::enableTrustChainSignatureType()
+{
+	trustChainSignatureType=1;
+}
+
+inline void
+Data::disableTrustChainSignatureType()
+{
+	trustChainSignatureType=0;
+}
+
+//inline std::vector<bool>
+//Data::getVerFlag(int index)
+//{
+//	  std::vector<bool> verflag;
+//	    for (int i = 0; i < m_verFlag; i++)
+//	    {
+//	        boolArray.push_back(ChckFunc(obj[i]));
+//	    }
+//	    return  boolArray;
+//	return m_verFlag;
+//}
+
+
+
+inline int
+Data::getNumSignature() const
+{
+  return m_info_stack.fcRecord.size();
+}
 } // namespace ndn
 
 #endif
