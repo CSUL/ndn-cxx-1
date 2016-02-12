@@ -23,6 +23,7 @@
 #include "encoding/block-helpers.hpp"
 #include "util/crypto.hpp"
 
+
 namespace ndn {
 
 BOOST_CONCEPT_ASSERT((boost::EqualityComparable<Data>));
@@ -89,6 +90,9 @@ Data::wireEncode(EncodingImpl<TAG>& encoder, bool unsignedPortion/* = false*/) c
       totalLength += encoder.prependVarNumber(totalLength);
       totalLength += encoder.prependVarNumber(tlv::Data);
     }
+
+ //totalLength += encoder.prependByteArray(m_info_stack,m_info_stack.fcRecord.size());
+
   return totalLength;
 }
 
@@ -164,6 +168,8 @@ Data::wireDecode(const Block& wire)
   Block::element_const_iterator val = m_wire.find(tlv::SignatureValue);
   if (val != m_wire.elements_end())
     m_signature.setValue(*val);
+
+
 }
 
 Data&
@@ -280,6 +286,25 @@ Data::setSignature(const Signature& signature)
   return *this;
 }
 
+/*
+size_t
+Data::addNewFCRecord(void)
+{
+  /// XMB
+//	Signature sign=m_signature;
+
+   fcInfo::fcFields newFCRecord;
+   newFCRecord.setFCHash(crypto::sha256(m_content.value(),m_content.size()));
+   newFCRecord.setFCSign(m_signature);
+   newFCRecord.setFCMetaInfo(m_metaInfo);
+   m_info_stack.fcRecord.push(newFCRecord);
+
+  //ndn::Validator::verifyFCSignature(newFCRecord.m_fc_hashContent, newFCRecord.m_fc_signContent);
+  //
+   return 1;
+}*/
+
+
 Data&
 Data::setSignatureValue(const Block& value)
 {
@@ -323,7 +348,8 @@ operator<<(std::ostream& os, const Data& data)
   os << "MetaInfo: " << data.getMetaInfo() << "\n";
   os << "Content: (size: " << data.getContent().value_size() << ")\n";
   os << "Signature: (type: " << data.getSignature().getType() <<
-    ", value_length: "<< data.getSignature().getValue().value_size() << ")";
+    ", value_length: "<< data.getSignature().getValue().value_size() << ")" <<"\n"
+    << "FC Stack Size:"<<data.getNumSignature()<<"\n";
   os << std::endl;
 
   return os;
